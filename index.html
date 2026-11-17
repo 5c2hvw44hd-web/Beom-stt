@@ -364,6 +364,21 @@
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
+<script>
+  // 진단용: 페이지에서 오류가 나면 화면 위쪽에 바로 보여 줌
+  (function () {
+    function show(msg) {
+      var box = document.getElementById('diag');
+      if (!box) { box = document.createElement('div'); box.id = 'diag';
+        box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99;padding:10px 12px;border-radius:12px;background:#FF3B30;color:#fff;font:600 13px/1.45 -apple-system,sans-serif;white-space:pre-wrap;word-break:break-all';
+        (document.body || document.documentElement).appendChild(box); }
+      box.textContent = (box.textContent ? box.textContent + '\n' : '') + '오류: ' + msg;
+    }
+    window.addEventListener('error', function (e) { show((e.message || e) + (e.lineno ? ' (줄 ' + e.lineno + ')' : '')); });
+    window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
+    window.__diagShow = show;
+  })();
+</script>
 </head>
 <body>
 <div class="app" id="app">
@@ -961,7 +976,10 @@
     }
   }
 
-  micBtn.addEventListener('click', () => { if (running) stopAll(); else startListening(); });
+  micBtn.addEventListener('click', () => {
+    try { if (running) stopAll(); else startListening(); }
+    catch (err) { if (window.__diagShow) window.__diagShow('버튼 처리 중 ' + (err && err.message || err)); }
+  });
 
   // ---------- 상태 표시 ----------
   const LABEL = { idle: '대기 중', starting: '마이크 준비 중…', listening: '듣는 중', finishing: '마무리하는 중…', paused: '일시 정지 · 화면으로 돌아오면 이어서 들어요' };
@@ -1509,6 +1527,7 @@
   showEnvHelp(false);
   requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight; });
   if (CFG.debug) window.__liveStt = { eq, state, EQB };
+  root.dataset.ready = 'v3';
 })();
 </script>
 </body>
